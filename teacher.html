@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tense Imposter · Teacher</title>
+<style>:root{--bg:#070b1f;--bg2:#101735;--card:#151e44;--line:#2a3672;--ink:#eef2ff;--mut:#9aa6d6;--crew:#38d6c4;--imp:#ff4d6d;--gold:#ffd166;--ok:#4ade80;--bad:#f87171;--blue:#7aa2ff}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:radial-gradient(1200px 700px at 70% -10%,#26307a 0%,transparent 60%),radial-gradient(900px 600px at -10% 110%,#3b1240 0%,transparent 55%),var(--bg);color:var(--ink);font-family:"Times New Roman",Times,serif;font-size:16px;line-height:1.45}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:16px}
+h1,h2,h3{margin:.2em 0 .4em;line-height:1.2}
+h1{font-size:28px;letter-spacing:.5px}
+h2{font-size:22px}
+.zh{color:var(--mut);font-size:14px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0)),var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.btn{font-family:inherit;font-size:16px;border:0;border-radius:12px;padding:12px 18px;cursor:pointer;background:var(--blue);color:#081033;font-weight:bold;transition:transform .08s,filter .15s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.red{background:var(--imp);color:#fff}
+.btn.teal{background:var(--crew);color:#062a26}
+.btn.gold{background:var(--gold);color:#3a2700}
+input,select{font-family:inherit;font-size:18px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#0b1130;color:var(--ink);width:100%}
+input:focus,select:focus{outline:2px solid var(--blue)}
+label{display:block;margin:10px 0 6px;color:var(--mut)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sp{flex:1}
+.pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#0b1130;border:1px solid var(--line);font-size:14px}
+.err{color:var(--bad);margin-top:8px;min-height:1.2em}
+.meter{display:inline-flex;gap:4px;vertical-align:middle}
+.meter i{width:22px;height:12px;border-radius:4px;background:#0b1130;border:1px solid var(--line)}
+.meter i.on{background:var(--imp);box-shadow:0 0 10px var(--imp)}
+.q{font-size:20px;margin:6px 0 12px}
+.q b.blank{color:var(--gold)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.opts{grid-template-columns:1fr}}
+.opt{text-align:left;font-family:inherit;font-size:17px;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:#0b1130;color:var(--ink);cursor:pointer}
+.opt b{color:var(--gold);margin-right:6px}
+.opt.sel{border-color:var(--blue);background:#1a2a6b}
+.opt.right{border-color:var(--ok);background:#0f3b2a}
+.opt.wrong{border-color:var(--bad);background:#3b1220}
+.opt:disabled{cursor:default}
+.hint{border-radius:14px;padding:12px 14px;margin:12px 0;border:1px dashed var(--crew);background:rgba(56,214,196,.08)}
+.hint.fake{border-color:var(--imp);background:rgba(255,77,109,.1)}
+.timer{font-weight:bold;font-size:20px;color:var(--gold);min-width:56px;text-align:right}
+.timer.low{color:var(--imp)}
+.fade{animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.big{font-size:40px;font-weight:bold;letter-spacing:4px;color:var(--gold)}
+.muted{color:var(--mut)}
+.center{text-align:center}
+
+.wrap{max-width:1180px}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.code{font-size:34px;font-weight:bold;letter-spacing:5px;color:var(--gold)}
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:12px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{color:var(--mut);font-weight:normal;font-size:14px}
+tr.out td{opacity:.55}
+.x{background:none;border:0;color:var(--mut);cursor:pointer;font-size:16px}
+.x:hover{color:var(--bad)}
+.dist{margin:4px 0}
+.dist .b{height:10px;border-radius:5px;background:var(--blue);display:inline-block;vertical-align:middle;margin:0 6px;min-width:2px}
+.dist.right .b{background:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{padding:6px 12px;border-radius:999px;background:#0b1130;border:1px solid var(--line)}
+.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.step{display:inline-flex;align-items:center;gap:8px}
+.step button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#0b1130;color:var(--ink);font-size:20px;cursor:pointer}
+.step b{font-size:22px;min-width:26px;text-align:center}
+.phase{font-size:22px;font-weight:bold}
+.rI{color:var(--imp);font-weight:bold}.rC{color:var(--crew)}
+.howto summary{cursor:pointer;font-size:18px;font-weight:bold}
+.howto ol,.howto ul{margin:.3em 0 .6em;padding-left:1.3em}
+.big2{font-size:22px}
+</style></head><body>
+<div class="wrap" id="app"><div class="card">Connecting…</div></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyAEAb6WWNJJN7OAj1A5FVNUx7Y_vxpHhjw",authDomain:"f2-eng-tenses-live.firebaseapp.com",
+  databaseURL:"https://f2-eng-tenses-live-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"f2-eng-tenses-live",
+  storageBucket:"f2-eng-tenses-live.firebasestorage.app",messagingSenderId:"591157249024",appId:"1:591157249024:web:9e7aa1bd6b3c497a6104e5"});
+const DB=firebase.database(),AUTH=firebase.auth(),TS=firebase.database.ServerValue.TIMESTAMP;
+let OFFSET=0;DB.ref(".info/serverTimeOffset").on("value",s=>{OFFSET=s.val()||0;});
+const now=()=>Date.now()+OFFSET;
+async function freshAuth(force){if(force){try{await AUTH.signOut();}catch(e){}}if(!AUTH.currentUser)await AUTH.signInAnonymously();await AUTH.currentUser.getIdToken(true);return AUTH.currentUser.uid;}
+async function withAuth(fn){try{return await fn();}catch(e){if(!/permission/i.test(e.message||""))throw e;await freshAuth(true);return await fn();}}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const L="ABCD";
+function qText(q){return esc(q[0]).replace(/_{3,}/g,'<b class="blank">_____</b>');}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+// starfield
+(function(){const c=document.createElement("canvas");c.id="stars";document.body.prepend(c);const x=c.getContext("2d");let st=[];
+ function rs(){c.width=innerWidth*devicePixelRatio;c.height=innerHeight*devicePixelRatio;c.style.width=innerWidth+"px";c.style.height=innerHeight+"px";
+  st=Array.from({length:Math.round(innerWidth*innerHeight/5000)},()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.4+.3,s:Math.random()*.25+.05,p:Math.random()*6}));}
+ rs();addEventListener("resize",rs);
+ (function f(t){x.clearRect(0,0,c.width,c.height);for(const s of st){s.y+=s.s*devicePixelRatio;if(s.y>c.height)s.y=0;const a=.4+.6*Math.abs(Math.sin(t/900+s.p));
+  x.fillStyle=`rgba(220,230,255,${a})`;x.beginPath();x.arc(s.x,s.y,s.r*devicePixelRatio,0,7);x.fill();}requestAnimationFrame(f);})(0);})();
+// sound
+let AC=null;function snd(type){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime;
+ const seq={tap:[[660,.06]],ok:[[523,.09],[784,.14]],bad:[[220,.18],[160,.22]],alarm:[[880,.12],[660,.12],[880,.12],[660,.16]],tick:[[1200,.03]],win:[[523,.1],[659,.1],[784,.1],[1047,.25]],eject:[[400,.12],[300,.12],[200,.3]]}[type]||[];
+ let d=0;for(const [f,l] of seq){const o=AC.createOscillator(),g=AC.createGain();o.type=type==="alarm"?"square":"triangle";o.frequency.value=f;
+  g.gain.setValueAtTime(.0001,t+d);g.gain.exponentialRampToValueAtTime(.18,t+d+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d+l);o.connect(g).connect(AC.destination);o.start(t+d);o.stop(t+d+l+.02);d+=l;}}catch(e){}}
+function norm(g){if(g&&g.cfg&&g.cfg.qs&&!Array.isArray(g.cfg.qs)){const o=g.cfg.qs;g.cfg.qs=Object.keys(o).sort((a,b)=>a-b).map(k=>o[k]);}return g;}
+function played(g){const st=g.st||{};if(st.r==null)return 0;return st.r+(st.ph==="q"&&g.status==="live"?0:1);}
+
+// [question, options, correct, realHint, realHintZh, fakeHint, fakeHintZh, fakeIndex, section]
+const QS=[
+["Every morning, Aina _____ to school because she lives nearby.",["walk","walks","is walking","has walked"],1,
+ "Present Simple: 'Every morning' is a daily habit. Aina = she, so the verb takes -s.","一般现在时：每天的习惯，第三人称单数动词加 s。",
+ "Present Continuous: she is on her way to school right now.","现在进行时：她现在正在走路去学校。",2,"A"],
+["Listen! Someone _____ at the door. Can you please check?",["knocks","knocked","is knocking","has knocked"],2,
+ "Present Continuous: 'Listen!' tells us it is happening right now.","现在进行时：Listen! 表示正在发生。",
+ "Present Perfect: the knocking is already finished, so go and check who came.","现在完成时：敲门已经结束了。",3,"A"],
+["I _____ my English teacher since last Friday.",["did not see","have not seen","am not seeing","had not seen"],1,
+ "Present Perfect: 'since last Friday' links the past to now. Use have/has + past participle.","现在完成时：since 连接过去和现在。",
+ "Past Simple: 'last Friday' is a finished time in the past.","一般过去时：last Friday 是过去的时间。",0,"A"],
+["They _____ on their science project for three hours, and they still haven't finished it.",["work","are working","have worked","have been working"],3,
+ "Present Perfect Continuous: started 3 hours ago and still going ('for three hours' + not finished).","现在完成进行时：持续了三个小时，还在进行。",
+ "Present Continuous: they are working now, so just use are + -ing.","现在进行时：他们现在正在做。",1,"A"],
+["The school bus _____ at 6.30 a.m. every morning.",["leave","leaves","is leaving","has left"],1,
+ "Present Simple: a fixed routine ('every morning'). The bus = it, so the verb takes -s.","一般现在时：固定的日常，第三人称单数加 s。",
+ "Present Continuous: the bus is moving at 6.30, so use is + -ing.","现在进行时：巴士正在开。",2,"A"],
+["My father cannot answer the phone because he _____ the car at the moment.",["repairs","repaired","is repairing","has repaired"],2,
+ "Present Continuous: 'at the moment' means happening now.","现在进行时：at the moment = 现在。",
+ "Present Perfect: the repair is done, so use has + past participle.","现在完成时：已经修好了。",3,"A"],
+["How long _____ you _____ your best friend?",["do / know","are / knowing","have / known","did / know"],2,
+ "Present Perfect: 'How long' + a state that began in the past and continues now.","现在完成时：How long 问持续到现在的状态。",
+ "Present Simple: knowing someone is a fact, so use do + base verb.","一般现在时：认识是事实，用 do。",0,"A"],
+["The Earth _____ around the Sun.",["move","moves","is moving","has moved"],1,
+ "Present Simple: a scientific fact. The Earth = it, so the verb takes -s.","一般现在时：科学事实，加 s。",
+ "Present Continuous: the Earth is moving right now as we speak.","现在进行时：地球现在正在转。",2,"A"],
+["Sarah rarely _____ coffee because she prefers tea.",["drink","drinks","is drinking","has been drinking"],1,
+ "Present Simple: 'rarely' is a frequency word for habits. Sarah = she, so add -s.","一般现在时：rarely 表示习惯，加 s。",
+ "Present Perfect Continuous: she has been avoiding coffee for a long time.","现在完成进行时：她一直这样做。",3,"A"],
+["We _____ dinner right now, so could you call us later?",["have","had","are having","have had"],2,
+ "Present Continuous: 'right now' means happening at this moment.","现在进行时：right now = 正在。",
+ "Present Simple: dinner is a daily routine, so use the base verb.","一般现在时：吃晚餐是日常习惯。",0,"A"],
+["While we _____ along the beach, it suddenly started raining.",["walked","were walking","had walked","are walking"],1,
+ "Past Continuous: 'While' + a longer action that was interrupted by the rain.","过去进行时：While + 被打断的较长动作。",
+ "Past Simple: both actions are finished in the past, so use verb + -ed.","一般过去时：两个动作都已经结束。",0,"B"],
+["By the time we arrived at the cinema, the movie _____.",["starts","has started","had started","was starting"],2,
+ "Past Perfect: the movie started BEFORE we arrived (the earlier past). Use had + past participle.","过去完成时：电影在我们到达之前开始（过去的过去）。",
+ "Present Perfect: the movie has already started, so use has + past participle.","现在完成时：电影已经开始了。",1,"B"],
+["He _____ his homework when the teacher collected the exercise books.",["does not finish","did not finish","has not finished","had not finished"],3,
+ "Past Perfect: before the teacher collected the books (past), the homework was still not done.","过去完成时：老师收本子之前还没完成。",
+ "Past Simple: it is a simple finished past action, so use did not + base verb.","一般过去时：简单的过去动作。",1,"B"],
+["The students _____ a movie when the electricity suddenly went out.",["watched","were watching","had watched","have watched"],1,
+ "Past Continuous: a longer action (watching) was interrupted by a short one (the power went out).","过去进行时：较长动作被突然的短动作打断。",
+ "Past Perfect: they finished watching before the power went out.","过去完成时：停电前已经看完。",2,"B"],
+["I _____ my primary school teacher at the shopping mall yesterday.",["meet","have met","met","was meeting"],2,
+ "Past Simple: 'yesterday' is a finished time in the past.","一般过去时：yesterday 是过去时间。",
+ "Present Perfect: meeting a teacher is an experience, so use have + past participle.","现在完成时：这是一个经历。",1,"B"],
+["She _____ for two hours before she finally decided to take a break.",["studied","was studying","had been studying","has been studying"],2,
+ "Past Perfect Continuous: 'for two hours before' another past action. Use had been + -ing.","过去完成进行时：在过去某动作之前持续了两小时。",
+ "Present Perfect Continuous: 'for two hours' always needs has been + -ing.","现在完成进行时：for two hours 用 has been。",3,"B"],
+["When I arrived at the restaurant, my friends _____ already _____ their dinner.",["have / eaten","had / eaten","were / eating","are / eating"],1,
+ "Past Perfect: my friends finished eating before I arrived. Use had + eaten.","过去完成时：我到之前他们已经吃完。",
+ "Past Continuous: they were in the middle of dinner, so use were + eating.","过去进行时：他们正在吃。",2,"B"],
+["Did you _____ to lock the front door before leaving?",["remembered","remembering","remember","remembers"],2,
+ "After 'Did', always use the base verb (no -ed, no -s).","Did 后面用动词原形。",
+ "Past Simple: it is a past question, so the verb needs -ed.","一般过去时：过去的问题，动词加 -ed。",0,"B"],
+["My father _____ home when he received an unexpected phone call.",["drove","was driving","has driven","had driven"],1,
+ "Past Continuous: he was in the middle of driving when the call came.","过去进行时：开车途中接到电话。",
+ "Past Simple: he drove home and then the call came, both simple past.","一般过去时：两个都是简单过去动作。",0,"B"],
+["The last time we _____ Langkawi was in 2022.",["visit","have visited","visited","were visiting"],2,
+ "Past Simple: 'in 2022' is a finished time in the past.","一般过去时：2022 是过去时间。",
+ "Present Perfect: 'the last time' talks about experience, so use have + past participle.","现在完成时：谈经历。",1,"B"],
+["I think our school team _____ the football match tomorrow.",["wins","won","will win","is winning"],2,
+ "Future Simple: 'I think' + a prediction or opinion. Use will + base verb.","一般将来时：I think + 预测，用 will。",
+ "Present Continuous for future: the match is arranged, so use is + -ing.","现在进行时表将来：比赛已安排好。",3,"C"],
+["Look at those dark clouds! It _____ rain soon.",["will","is going to","has","was going to"],1,
+ "Be going to: a prediction from evidence you can see now (the dark clouds).","be going to：根据眼前的迹象预测。",
+ "Future Simple: every prediction uses 'will'.","一般将来时：预测都用 will。",0,"C"],
+["We _____ the principal at 10 a.m. tomorrow. The appointment has already been arranged.",["meet","met","will have met","are meeting"],3,
+ "Present Continuous for future: a fixed arrangement (the appointment is arranged).","现在进行时表将来：已经安排好的约会。",
+ "Future Perfect: at 10 a.m. the meeting will be completed, so use will have + past participle.","将来完成时：到时已完成。",2,"C"],
+["By the end of this year, she _____ her university course.",["completes","completed","will complete","will have completed"],3,
+ "Future Perfect: 'By the end of this year' means finished before a future time.","将来完成时：在将来某时间之前完成。",
+ "Future Simple: a future plan just needs will + base verb.","一般将来时：将来计划用 will。",2,"C"],
+["This time tomorrow, I _____ over the South China Sea on my way to Japan.",["fly","will fly","will be flying","have flown"],2,
+ "Future Continuous: 'This time tomorrow' means in the middle of an action in the future.","将来进行时：明天这个时候正在做。",
+ "Future Simple: tomorrow is the future, so just use will + base verb.","一般将来时：明天就用 will。",1,"C"],
+["Please do not call me at 8 p.m. tonight because I _____ dinner with my family.",["will have","will be having","had","have had"],1,
+ "Future Continuous: at 8 p.m. tonight I will be in the middle of dinner.","将来进行时：今晚八点正在吃饭。",
+ "Future Simple: it is a future action, so use will + base verb.","一般将来时：将来的动作用 will。",0,"C"],
+["According to the timetable, the flight _____ at 9.15 tomorrow morning.",["leaves","left","is leaving","has left"],0,
+ "Present Simple for future: timetables and schedules use the Present Simple.","一般现在时表将来：时刻表用一般现在时。",
+ "Present Continuous for future: it is a planned trip, so use is + -ing.","现在进行时表将来：计划好的行程。",2,"C"],
+["My family has already booked the hotel and bought the tickets. We _____ to Penang this weekend.",["travelled","travel","are travelling","have travelled"],2,
+ "Present Continuous for future: already booked and arranged. Use are + -ing.","现在进行时表将来：已经订好安排好。",
+ "Present Simple: the trip is a fact about this weekend, so use the base verb.","一般现在时：这是事实。",1,"C"],
+["By the time you get home, I _____ dinner.",["cook","will cook","will have cooked","am cooking"],2,
+ "Future Perfect: 'By the time you get home' means done before that future moment.","将来完成时：在你到家之前已完成。",
+ "Future Simple: it is a future action, so use will + base verb.","一般将来时：将来的动作用 will。",1,"C"],
+["Don't worry! I promise I _____ your secret.",["don't tell","didn't tell","won't tell","haven't told"],2,
+ "Future Simple: promises use 'will'. won't = will not.","一般将来时：承诺用 will（won't）。",
+ "Present Simple: it is a general truth, so use don't + base verb.","一般现在时：一般事实用 don't。",0,"C"]
+];
+const SECT={A:"Present tenses (Q1–10)",B:"Past tenses (Q11–20)",C:"Future tenses (Q21–30)",ALL:"All tenses (Q1–30)"};
+
+const GAME_URL="tense-imposter.vercel.app";
+const app=$("#app"),LS="impTeacherGame";
+let uid=null,code=null,gref=null,G=null,busy=false,peek=false,armEnd=false;
+const cfgDraft={set:"ALL",rounds:10,dT:60,vT:30,nImp:null};
+const autoImp=n=>Math.max(1,Math.floor((n+4)/6));
+
+function howTo(open){return `<div class="card howto"><details${open?" open":""}><summary>📖 How to play 怎么玩</summary>
+ <h3>Students 学生</h3><ol>
+  <li>Open <b>${GAME_URL}</b> on a phone, type your name and the 6-digit code. 用手机打开网址，输入名字和代码。</li>
+  <li>The game secretly picks the <b class="rI">imposters</b>. Everyone else is <b class="rC">crew</b>. Hold the role button to check your role. 按住按钮查看身份。</li>
+  <li>Each round: read the tense question. Crew get a <b>real hint</b>; imposters get a <b>fake hint</b>. Discuss out loud and choose an answer. 讨论后作答。</li>
+  <li>After the answer is shown, everyone can see who chose what. Then <b>vote</b> to eject the person you think is the imposter, or skip. 看答案，然后投票。</li>
+  <li>Ejected players become ghosts 👻: they still answer for practice but can't vote. 被淘汰者仍可答题，不能投票。</li></ol>
+ <h3>Winning 胜负</h3><ul>
+  <li><b class="rC">Crew win</b> when every imposter is ejected. 找出全部卧底。</li>
+  <li><b class="rI">Imposters win</b> with 3 sabotages (a round where most crew answer wrong), if they equal the crew, or if one survives the last round. 3次破坏、人数追平或撑到最后。</li></ul>
+ <h3>Teacher 老师</h3><ul>
+  <li>Roles stay hidden on this screen, so it is safe to project. Use <b>Hold to peek</b> only on your own screen. 屏幕不显示身份，可以投影。</li>
+  <li>The discussion and voting timers run by themselves. Press <b>Next ▶</b> to move on after the answer and eject screens, or to skip a timer. 按 Next 进入下一步。</li>
+  <li>At the end, press <b>Reveal roles</b> to show the imposters to everyone, then download the CSV. 最后揭晓身份并下载成绩。</li>
+  <li>Keep this page open during the game: it runs the timers. 游戏期间请保持本页面开启。</li></ul>
+</details></div>`;}
+
+function home(msg){
+  stopWatch();
+  app.innerHTML=`<div class="card center fade"><div style="font-size:56px">🚀</div><h1>Tense Imposter · Teacher</h1><div class="zh">时态卧底 · 老师控制台</div>
+   <p>Create a room, let the whole class join, and the game secretly picks the imposters.</p>
+   <button class="btn teal big2" id="new">＋ New game 新游戏</button><div class="err">${esc(msg||"")}</div></div>${howTo(true)}`;
+  $("#new").onclick=newGame;
+}
+async function newGame(){
+  $("#new").disabled=true;$("#new").textContent="Creating…";
+  try{
+    uid=await freshAuth(false);
+    const tryCreate=async()=>{for(let k=0;k<8;k++){const c=String(Math.floor(100000+Math.random()*900000));
+      const ex=await DB.ref("imp/"+c+"/owner").get();if(ex.exists())continue;
+      await DB.ref("imp/"+c).set({owner:AUTH.currentUser.uid,status:"lobby",createdAt:TS});return c;}throw new Error("Could not create a code, please try again.");};
+    let c;try{c=await tryCreate();}catch(e){if(!/permission/i.test(e.message||""))throw e;await freshAuth(true);c=await tryCreate();}
+    uid=AUTH.currentUser.uid;open(c);
+  }catch(e){home("Error: "+(e.message||e));}
+}
+function stopWatch(){if(gref){gref.off();gref=null;}G=null;}
+function open(c){stopWatch();code=c;try{localStorage.setItem(LS,c);}catch(e){}
+  gref=DB.ref("imp/"+c);gref.on("value",s=>{G=norm(s.val());
+    if(!G||G.owner!==uid){try{localStorage.removeItem(LS);}catch(e){}home(G?"That game belongs to another teacher.":"Game not found.");return;}
+    autoRoles();draw();},e=>home("Error: "+e.message));}
+function autoRoles(){ // late joiners become crew
+  if(G.status!=="live")return;const up={};
+  for(const id of Object.keys(G.players||{}))if(!(G.roles||{})[id])up[id]="C";
+  if(Object.keys(up).length)gref.child("roles").update(up);
+}
+const P=()=>G.players||{};
+const pname=id=>P()[id]?P()[id].name:"(left)";
+const isOut=id=>G.out&&G.out[id]!=null;
+const role=id=>(G.roles||{})[id];
+const alive=()=>Object.keys(P()).filter(id=>!isOut(id));
+function curQ(){return QS[G.cfg.qs[G.st.r]];}
+function correctCount(id){const a=(P()[id]||{}).a||{};return (G.cfg?G.cfg.qs:[]).reduce((n,qi,r)=>n+(a[r]===QS[qi][2]?1:0),0);}
+function answeredCount(id){return Object.values((P()[id]||{}).a||{}).filter(v=>v!=null).length;}
+
+function topBar(){
+  const st=G.status;
+  return `<div class="card bar"><div><b>🚀 Tense Imposter</b> <span class="pill">${st==="lobby"?"Lobby 等待中":st==="live"?"Live 进行中":"Ended 已结束"}</span><br>
+    <span class="muted">Students go to <b style="color:var(--ink)">${GAME_URL}</b> and enter</span></div>
+   <div class="code">${code}</div><span class="sp"></span>
+   ${st==="live"?`<button class="btn ghost" id="peek">👁 Hold to peek roles</button>`:""}
+   ${st!=="end"?`<button class="btn ghost" id="endg">${armEnd?"Click again to end":"End game"}</button>`:""}
+   <button class="btn ghost" id="newg">New game</button></div>`;
+}
+function bindTop(){
+  const pk=$("#peek");if(pk){const on=e=>{e.preventDefault();peek=true;drawPlayers();},off=()=>{if(peek){peek=false;drawPlayers();}};
+    pk.addEventListener("pointerdown",on);pk.addEventListener("pointerleave",off);}
+  const eg=$("#endg");if(eg)eg.onclick=()=>{if(!armEnd){armEnd=true;draw();setTimeout(()=>{armEnd=false;if(G)draw();},4000);return;}armEnd=false;
+    if(G.status==="lobby"){gref.remove();try{localStorage.removeItem(LS);}catch(e){}home();}else endGame("none","teacher");};
+  $("#newg").onclick=()=>{try{localStorage.removeItem(LS);}catch(e){}home();};
+}
+function draw(){
+  if(!G)return;
+  if(G.status==="lobby")drawLobby();else if(G.status==="live")drawLive();else drawEnd();
+}
+// ---------- LOBBY ----------
+function drawLobby(){
+  const ids=Object.keys(P()),n=ids.length,nImp=cfgDraft.nImp==null?autoImp(n):Math.min(cfgDraft.nImp,Math.max(1,n-2)||1);
+  const qn=cfgDraft.set==="ALL"?30:10;
+  app.innerHTML=`${topBar()}
+   <div class="grid"><div class="card"><h2>Crew on board 已登船: ${n}</h2>
+     <div class="chips">${ids.map(id=>`<span>${esc(pname(id))} <button class="x" data-k="${id}" title="Remove">×</button></span>`).join("")||`<span class="muted">Waiting for students… 等待学生加入…</span>`}</div></div>
+    <div class="card"><h2>Mission settings 设置</h2><div class="set">
+      <div><label>Questions 题目</label><select id="set">${Object.entries(SECT).map(([k,v])=>`<option value="${k}" ${k===cfgDraft.set?"selected":""}>${v}</option>`).join("")}</select></div>
+      <div><label>Rounds 轮数</label><div class="step"><button data-s="rounds:-1">−</button><b>${Math.min(cfgDraft.rounds,qn)}</b><button data-s="rounds:1">＋</button></div></div>
+      <div><label>Imposters 卧底 ${cfgDraft.nImp==null?"(auto)":""}</label><div class="step"><button data-s="nImp:-1">−</button><b>${nImp}</b><button data-s="nImp:1">＋</button></div></div>
+      <div><label>Discuss time 讨论</label><select id="dT">${[30,45,60,90,120].map(s=>`<option ${s===cfgDraft.dT?"selected":""} value="${s}">${s} s</option>`).join("")}</select></div>
+      <div><label>Vote time 投票</label><select id="vT">${[20,30,45,60].map(s=>`<option ${s===cfgDraft.vT?"selected":""} value="${s}">${s} s</option>`).join("")}</select></div>
+     </div>
+     <p class="muted">Auto: about 1 imposter for every 6 students. 自动：约每6人1个卧底。</p>
+     <button class="btn teal big2" id="start" ${n<3?"disabled":""} style="width:100%">🚀 Launch mission 开始 (${n<3?"need at least 3 students":nImp+" imposter"+(nImp>1?"s":"")})</button></div></div>
+   ${howTo(false)}`;
+  bindTop();
+  app.querySelectorAll(".x").forEach(b=>b.onclick=()=>gref.child("players/"+b.dataset.k).remove());
+  $("#set").onchange=e=>{cfgDraft.set=e.target.value;draw();};
+  $("#dT").onchange=e=>{cfgDraft.dT=+e.target.value;};
+  $("#vT").onchange=e=>{cfgDraft.vT=+e.target.value;};
+  app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{const [k,d]=b.dataset.s.split(":");
+    if(k==="rounds")cfgDraft.rounds=Math.max(3,Math.min(qn,Math.min(cfgDraft.rounds,qn)+ +d));
+    else{const cur=cfgDraft.nImp==null?autoImp(n):cfgDraft.nImp;cfgDraft.nImp=Math.max(1,Math.min(Math.max(1,Math.floor((n-1)/2)),cur+ +d));}
+    draw();});
+  $("#start").onclick=()=>startGame(nImp);
+}
+async function startGame(nImp){
+  const ids=shuffle(Object.keys(P()));if(ids.length<3)return;
+  nImp=Math.max(1,Math.min(nImp,Math.floor((ids.length-1)/2)));
+  const roles={};ids.forEach((id,i)=>roles[id]=i<nImp?"I":"C");
+  const pool=cfgDraft.set==="ALL"?[...Array(30).keys()]:{A:[0,1,2,3,4,5,6,7,8,9],B:[10,11,12,13,14,15,16,17,18,19],C:[20,21,22,23,24,25,26,27,28,29]}[cfgDraft.set];
+  const rounds=Math.min(cfgDraft.rounds,pool.length);
+  const qs=shuffle(pool).slice(0,rounds);
+  await gref.update({status:"live",startedAt:TS,roles,out:null,
+    cfg:{qs,rounds,nImp,dT:cfgDraft.dT,vT:cfgDraft.vT,set:cfgDraft.set},
+    st:{r:0,ph:"q",until:now()+cfgDraft.dT*1000,sab:0}});
+}
+// ---------- ENGINE ----------
+async function advance(){
+  if(busy||!G||G.status!=="live")return;busy=true;
+  try{
+    const st=G.st,r=st.r,q=curQ();
+    if(st.ph==="q"){
+      const crew=alive().filter(id=>role(id)==="C");
+      const ans=crew.map(id=>((P()[id].a||{})[r])).filter(a=>a!=null);
+      const right=ans.filter(a=>a===q[2]).length;
+      const hit=ans.length>0&&right*2<ans.length;
+      await gref.child("st").update({ph:"result",hit,sab:(st.sab||0)+(hit?1:0),until:null});
+    }else if(st.ph==="result"){
+      if((st.sab||0)>=3)await endGame("imp","sab");
+      else await gref.child("st").update({ph:"vote",until:now()+G.cfg.vT*1000});
+    }else if(st.ph==="vote"){
+      const al=alive(),c={};let skip=0;
+      for(const id of al){const v=((P()[id]||{}).v||{})[r];if(!v)continue;if(v==="skip")skip++;else if(al.includes(v))c[v]=(c[v]||0)+1;}
+      const rows=Object.entries(c).sort((a,b)=>b[1]-a[1]);
+      let ej="";if(rows.length&&rows[0][1]>skip&&(rows.length===1||rows[0][1]>rows[1][1]))ej=rows[0][0];
+      const up={"st/ph":"eject","st/ej":ej,"st/until":null};if(ej)up["out/"+ej]=r;
+      await gref.update(up);
+    }else if(st.ph==="eject"){
+      const al=alive(),ia=al.filter(id=>role(id)==="I").length,ca=al.length-ia;
+      if(ia===0)await endGame("crew","caught");
+      else if(ia>=ca)await endGame("imp","outnum");
+      else if(r+1>=G.cfg.rounds)await endGame("imp","survive");
+      else await gref.child("st").set({r:r+1,ph:"q",until:now()+G.cfg.dT*1000,sab:st.sab||0});
+    }
+  }catch(e){console.error(e);}
+  busy=false;
+}
+async function endGame(win,why){
+  await gref.update({status:"end",endedAt:TS,"st/win":win,"st/why":why,"st/reveal":false,"st/until":null});
+}
+setInterval(()=>{if(!G||G.status!=="live")return;const st=G.st;
+  const t=$("#tm");
+  if((st.ph==="q"||st.ph==="vote")&&st.until){const s=Math.max(0,Math.ceil((st.until-now())/1000));if(t){t.textContent="⏱ "+s+"s";t.classList.toggle("low",s<=10);}
+    if(now()>=st.until)advance();
+    // everyone done early?
+    else{const al=alive();
+      if(st.ph==="q"&&al.length&&Object.keys(P()).every(id=>((P()[id].a||{})[st.r])!=null)&&st.until-now()>5000)gref.child("st/until").set(now()+5000);
+      if(st.ph==="vote"&&al.length&&al.every(id=>((P()[id].v||{})[st.r])!=null)&&st.until-now()>3000)gref.child("st/until").set(now()+3000);}
+  }else if(t)t.textContent="";},300);
+// ---------- LIVE ----------
+const PHL={q:"💬 Discuss & answer 讨论作答",result:"✅ Answer 公布答案",vote:"🚨 Voting 投票中",eject:"🚀 Eject 淘汰结果"};
+function drawLive(){
+  const st=G.st,q=curQ(),r=st.r,ids=Object.keys(P());
+  const nAns=ids.filter(id=>((P()[id].a||{})[r])!=null).length;
+  const al=alive(),nVote=al.filter(id=>((P()[id].v||{})[r])!=null).length;
+  let body="";
+  const opts=(show)=>q[1].map((o,i)=>`<div class="opt ${show&&i===q[2]?"right":""}" style="cursor:default"><b>${L[i]}.</b>${esc(o)}</div>`).join("");
+  if(st.ph==="q")body=`<div class="q">${qText(q)}</div><div class="opts">${opts(false)}</div>
+     <p class="big2" style="margin-bottom:0">Answered 已作答: <b>${nAns}/${ids.length}</b></p>`;
+  else if(st.ph==="result"){
+    const by=[0,0,0,0];ids.forEach(id=>{const a=(P()[id].a||{})[r];if(a!=null)by[a]++;});const mx=Math.max(1,...by);
+    body=`<div class="q">${qText(q)}</div><div class="opts">${opts(true)}</div>
+     <div class="hint"><b>Answer: ${L[q[2]]}. ${esc(q[1][q[2]])}</b><br>${esc(q[3])}<div class="zh">${esc(q[4])}</div></div>
+     ${by.map((n,i)=>`<div class="dist ${i===q[2]?"right":""}"><b>${L[i]}</b><span class="b" style="width:${n/mx*200}px"></span>${n}</div>`).join("")}
+     ${st.hit?`<div class="hint fake"><b>💥 Sabotage!</b> Most of the crew answered wrong. 大部分队员答错。</div>`:`<p class="muted">🛡️ Crew defended this round. 队员守住了。</p>`}`;
+  }else if(st.ph==="vote")body=`<div style="font-size:60px">🚨</div><h2>Emergency meeting 紧急会议</h2><p class="big2">Voted 已投票: <b>${nVote}/${al.length}</b></p>`;
+  else if(st.ph==="eject"){
+    const c={};let skip=0;for(const id of Object.keys(P())){const v=((P()[id].v||{})[r]);if(!v)continue;if(v==="skip")skip++;else c[v]=(c[v]||0)+1;}
+    body=`${st.ej?`<h2>🚀 ${esc(pname(st.ej))} was ejected! 被淘汰！</h2><p class="muted">Role stays secret until the end. 身份最后揭晓。</p>`:`<h2>🤷 No one was ejected. 没有人被淘汰。</h2>`}
+     ${Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([id,n])=>`<div class="who">🗳️ ${esc(pname(id))}: <b>${n}</b></div>`).join("")}${skip?`<div class="who">⏭️ Skip: <b>${skip}</b></div>`:""}`;
+  }
+  const nextLbl={q:"Show answer ▶",result:"Start voting ▶",vote:"Count votes ▶",eject:"Next round ▶"}[st.ph];
+  app.innerHTML=`${topBar()}
+   <div class="grid"><div class="card">
+     <div class="bar"><span class="phase">Round ${r+1}/${G.cfg.rounds}</span><span class="pill">${PHL[st.ph]}</span><span class="sp"></span><span class="timer big2" id="tm"></span></div>
+     <div class="row" style="margin:10px 0"><span>Sabotage 破坏 <span class="meter">${[0,1,2].map(i=>`<i class="${i<(st.sab||0)?"on":""}"></i>`).join("")}</span></span>
+      <span class="sp"></span><span class="muted">Imposters in game 卧底: ${G.cfg.nImp}</span></div>
+     <div class="fade">${body}</div>
+     <div style="margin-top:14px"><button class="btn gold big2" id="next">${nextLbl}</button></div></div>
+    <div class="card"><h2>Crew 船员 (${al.length} active / ${ids.length})</h2><div id="pl"></div></div></div>`;
+  bindTop();$("#next").onclick=advance;drawPlayers();
+}
+function drawPlayers(){
+  const el=$("#pl");if(!el||!G)return;const st=G.st||{},r=st.r,ids=Object.keys(P());
+  const showRole=G.status==="end"?!!st.reveal:peek;
+  ids.sort((a,b)=>(isOut(a)-isOut(b))||pname(a).localeCompare(pname(b)));
+  el.innerHTML=`<table><tr><th>Name</th>${showRole?"<th>Role</th>":""}<th>Status</th>${G.status==="live"?"<th>This round</th>":""}<th>Correct</th>${G.status!=="lobby"?"":"<th></th>"}</tr>
+   ${ids.map(id=>{const p=P()[id],a=(p.a||{})[r],v=(p.v||{})[r];let tr="";
+     if(G.status==="live"){
+       if(st.ph==="q")tr=a!=null?"✅ answered":"…";
+       else if(st.ph==="result")tr=a==null?"—":(a===curQ()[2]?"✅ "+L[a]:"❌ "+L[a]);
+       else if(st.ph==="vote")tr=isOut(id)?"👻":(v?"🗳️ voted":"…");
+       else tr=v?(v==="skip"?"skip":"→ "+esc(pname(v))):"—";}
+     return `<tr class="${isOut(id)?"out":""}"><td><b>${esc(p.name)}</b></td>${showRole?`<td class="${role(id)==="I"?"rI":"rC"}">${role(id)==="I"?"🔪 Imposter":"Crew"}</td>`:""}
+      <td>${isOut(id)?"👻 out (R"+(G.out[id]+1)+")":"🧑‍🚀 in"}</td>${G.status==="live"?`<td>${tr}</td>`:""}<td>${correctCount(id)}/${played(G)}</td></tr>`;}).join("")}</table>`;
+}
+// ---------- END ----------
+function drawEnd(){
+  const st=G.st||{},win=st.win;
+  const why={caught:"All the imposters were ejected.",sab:"The imposters made 3 sabotages.",outnum:"The imposters equalled the crew.",survive:"An imposter survived until the last round.",teacher:"The teacher ended the game."}[st.why]||"";
+  app.innerHTML=`${topBar()}
+   <div class="card center fade"><div style="font-size:60px">${win==="crew"?"🏆":win==="imp"?"🕵️":"🏁"}</div>
+    <h1 style="color:${win==="crew"?"var(--crew)":win==="imp"?"var(--imp)":"var(--gold)"}">${win==="crew"?"CREW WINS! 队员胜利！":win==="imp"?"IMPOSTERS WIN! 卧底胜利！":"MISSION ENDED 任务结束"}</h1><p class="big2">${why}</p>
+    ${st.reveal?"":`<button class="btn red big2" id="rev">🔪 Reveal roles 揭晓身份</button>`}
+    <button class="btn ghost" id="csv">⬇ Download results (CSV)</button></div>
+   <div class="card"><h2>Results 成绩</h2><div id="pl"></div></div>`;
+  bindTop();drawPlayers();
+  const rv=$("#rev");if(rv)rv.onclick=()=>gref.child("st/reveal").set(true);
+  $("#csv").onclick=csv;
+}
+function csv(){
+  const rows=[["Name","Role","Ejected in round","Correct","Answered",...G.cfg.qs.map((qi,r)=>"R"+(r+1)+" (Q"+(qi+1)+")")]];
+  for(const id of Object.keys(P())){const p=P()[id],a=p.a||{};
+    rows.push([p.name,role(id)==="I"?"Imposter":"Crew",isOut(id)?G.out[id]+1:"",correctCount(id),answeredCount(id),...G.cfg.qs.map((qi,r)=>a[r]==null?"":L[a[r]]+(a[r]===QS[qi][2]?" ✓":" ✗"))]);}
+  const s="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const d=new Date(),ds=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  const aEl=document.createElement("a");aEl.href=URL.createObjectURL(new Blob([s],{type:"text/csv"}));aEl.download=`tense-imposter-${code}-${ds}.csv`;aEl.click();
+}
+["pointerup","pointercancel","blur"].forEach(v=>addEventListener(v,()=>{if(peek){peek=false;drawPlayers();}}));
+// ---------- BOOT ----------
+(async()=>{try{uid=await freshAuth(false);}catch(e){home("Could not connect: "+e.message);return;}
+  let c=null;try{c=localStorage.getItem(LS);}catch(e){}
+  if(c)open(c);else home();})();
+</script></body></html>
