@@ -256,7 +256,10 @@ const SECT={A:"Present tenses (Q1–10)",B:"Past tenses (Q11–20)",C:"Future te
 const GAME_URL="tense-imposter.vercel.app";
 const app=$("#app"),LS="impTeacherGame";
 let uid=null,code=null,gref=null,G=null,busy=false,peek=false,armEnd=false;
-const cfgDraft={set:"ALL",rounds:10,dT:60,vT:30,nImp:null};
+const cfgDraft={set:"ALL",rounds:9,dT:8,vT:30,vE:3,nImp:null};
+const RESULT_MS=6000;
+function voteDue(r){const e=(G.cfg&&G.cfg.vE)||1;return (r+1)%e===0||r+1>=G.cfg.rounds;}
+function nextVoteQ(r){const e=(G.cfg&&G.cfg.vE)||1;return Math.min(G.cfg.rounds,Math.ceil((r+1)/e)*e);}
 const autoImp=n=>Math.max(1,Math.floor((n+4)/6));
 
 function howTo(open){return `<div class="card howto"><details${open?" open":""}><summary>📖 How to play 怎么玩</summary>
@@ -264,14 +267,14 @@ function howTo(open){return `<div class="card howto"><details${open?" open":""}>
   <li>Scan the QR code on the teacher's screen (or open <b>${GAME_URL}</b> and type the 6-digit code), then type your name. 扫二维码或打开网址输入代码，再输入名字。</li>
   <li>The game secretly picks the <b class="rI">imposters</b>. Everyone else is <b class="rC">crew</b>. Hold the role button to check your role. 按住按钮查看身份。</li>
   <li>Each round: read the tense question. Crew get a <b>real hint</b>; imposters get a <b>fake hint</b>. Discuss out loud and choose an answer. 讨论后作答。</li>
-  <li>After the answer is shown, everyone can see who chose what. Then <b>vote</b> to eject the person you think is the imposter, or skip. 看答案，然后投票。</li>
+  <li>After each answer is shown, everyone can see who chose what. After every few questions (3 by default) comes an emergency meeting: <b>vote</b> to eject the person you think is the imposter, or skip. 每3题投票一次。</li>
   <li>Ejected players become ghosts 👻: they still answer for practice but can't vote. 被淘汰者仍可答题，不能投票。</li></ol>
  <h3>Winning 胜负</h3><ul>
   <li><b class="rC">Crew win</b> when every imposter is ejected. 找出全部卧底。</li>
   <li><b class="rI">Imposters win</b> with 3 sabotages (a round where most crew answer wrong), if they equal the crew, or if one survives the last round. 3次破坏、人数追平或撑到最后。</li></ul>
  <h3>Teacher 老师</h3><ul>
   <li>Roles stay hidden on this screen, so it is safe to project. Use <b>Hold to peek</b> only on your own screen. 屏幕不显示身份，可以投影。</li>
-  <li>The discussion and voting timers run by themselves. Press <b>Next ▶</b> to move on after the answer and eject screens, or to skip a timer. 按 Next 进入下一步。</li>
+  <li>Each question has a short timer (8 s by default), the answer shows for 6 s, then the next question starts by itself. Voting happens every 3 questions. Press <b>Next ▶</b> to skip ahead, and after the eject screen. 按 Next 进入下一步。</li>
   <li>At the end, press <b>Reveal roles</b> to show the imposters to everyone, then download the CSV. 最后揭晓身份并下载成绩。</li>
   <li>Keep this page open during the game: it runs the timers. 游戏期间请保持本页面开启。</li>
   <li>Sound and space music play from this screen; use the 🎵 button (bottom right) to mute. Students' phones play short sound effects only. 右下角按钮可静音。</li></ul>
@@ -360,7 +363,8 @@ function drawLobby(){
       <div><label>Questions 题目</label><select id="set">${Object.entries(SECT).map(([k,v])=>`<option value="${k}" ${k===cfgDraft.set?"selected":""}>${v}</option>`).join("")}</select></div>
       <div><label>Rounds 轮数</label><div class="step"><button data-s="rounds:-1">−</button><b>${Math.min(cfgDraft.rounds,qn)}</b><button data-s="rounds:1">＋</button></div></div>
       <div><label>Imposters 卧底 ${cfgDraft.nImp==null?"(auto)":""}</label><div class="step"><button data-s="nImp:-1">−</button><b>${nImp}</b><button data-s="nImp:1">＋</button></div></div>
-      <div><label>Discuss time 讨论</label><select id="dT">${[30,45,60,90,120].map(s=>`<option ${s===cfgDraft.dT?"selected":""} value="${s}">${s} s</option>`).join("")}</select></div>
+      <div><label>Time per question 每题时间</label><select id="dT">${[8,10,15,20,30,45,60].map(s=>`<option ${s===cfgDraft.dT?"selected":""} value="${s}">${s} s</option>`).join("")}</select></div>
+      <div><label>Vote every 每几题投票</label><select id="vE">${[1,2,3,4,5].map(s=>`<option ${s===cfgDraft.vE?"selected":""} value="${s}">${s} question${s>1?"s":""}</option>`).join("")}</select></div>
       <div><label>Vote time 投票</label><select id="vT">${[20,30,45,60].map(s=>`<option ${s===cfgDraft.vT?"selected":""} value="${s}">${s} s</option>`).join("")}</select></div>
      </div>
      <p class="muted">Auto: about 1 imposter for every 6 students. 自动：约每6人1个卧底。</p>
@@ -371,6 +375,7 @@ function drawLobby(){
   $("#set").onchange=e=>{cfgDraft.set=e.target.value;draw();};
   $("#dT").onchange=e=>{cfgDraft.dT=+e.target.value;};
   $("#vT").onchange=e=>{cfgDraft.vT=+e.target.value;};
+  $("#vE").onchange=e=>{cfgDraft.vE=+e.target.value;};
   app.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{const [k,d]=b.dataset.s.split(":");
     if(k==="rounds")cfgDraft.rounds=Math.max(3,Math.min(qn,Math.min(cfgDraft.rounds,qn)+ +d));
     else{const cur=cfgDraft.nImp==null?autoImp(n):cfgDraft.nImp;cfgDraft.nImp=Math.max(1,Math.min(Math.max(1,Math.floor((n-1)/2)),cur+ +d));}
@@ -385,7 +390,7 @@ async function startGame(nImp){
   const rounds=Math.min(cfgDraft.rounds,pool.length);
   const qs=shuffle(pool).slice(0,rounds);
   await gref.update({status:"live",startedAt:TS,roles,out:null,
-    cfg:{qs,rounds,nImp,dT:cfgDraft.dT,vT:cfgDraft.vT,set:cfgDraft.set},
+    cfg:{qs,rounds,nImp,dT:cfgDraft.dT,vT:cfgDraft.vT,vE:cfgDraft.vE,set:cfgDraft.set},
     st:{r:0,ph:"q",until:now()+cfgDraft.dT*1000,sab:0}});
 }
 // ---------- ENGINE ----------
@@ -398,10 +403,12 @@ async function advance(){
       const ans=crew.map(id=>((P()[id].a||{})[r])).filter(a=>a!=null);
       const right=ans.filter(a=>a===q[2]).length;
       const hit=ans.length>0&&right*2<ans.length;
-      await gref.child("st").update({ph:"result",hit,sab:(st.sab||0)+(hit?1:0),until:null});
+      await gref.child("st").update({ph:"result",hit,sab:(st.sab||0)+(hit?1:0),until:now()+RESULT_MS});
     }else if(st.ph==="result"){
       if((st.sab||0)>=3)await endGame("imp","sab");
-      else await gref.child("st").update({ph:"vote",until:now()+G.cfg.vT*1000});
+      else if(voteDue(r))await gref.child("st").update({ph:"vote",until:now()+G.cfg.vT*1000});
+      else if(r+1>=G.cfg.rounds)await endGame("imp","survive");
+      else await gref.child("st").set({r:r+1,ph:"q",until:now()+G.cfg.dT*1000,sab:st.sab||0});
     }else if(st.ph==="vote"){
       const al=alive(),c={};let skip=0;
       for(const id of al){const v=((P()[id]||{}).v||{})[r];if(!v)continue;if(v==="skip")skip++;else if(al.includes(v))c[v]=(c[v]||0)+1;}
@@ -424,11 +431,11 @@ async function endGame(win,why){
 }
 setInterval(()=>{if(!G||G.status!=="live")return;const st=G.st;
   const t=$("#tm");
-  if((st.ph==="q"||st.ph==="vote")&&st.until){const s=Math.max(0,Math.ceil((st.until-now())/1000));if(t){t.textContent="⏱ "+s+"s";t.classList.toggle("low",s<=10);if(s<=5&&s>0&&t.dataset.l!=s){t.dataset.l=s;snd("tick");}}
+  if((st.ph==="q"||st.ph==="vote"||st.ph==="result")&&st.until){const s=Math.max(0,Math.ceil((st.until-now())/1000));if(t){t.textContent="⏱ "+s+"s";t.classList.toggle("low",s<=10);if(s<=5&&s>0&&t.dataset.l!=s){t.dataset.l=s;snd("tick");}}
     if(now()>=st.until)advance();
     // everyone done early?
     else{const al=alive();
-      if(st.ph==="q"&&al.length&&Object.keys(P()).every(id=>((P()[id].a||{})[st.r])!=null)&&st.until-now()>5000)gref.child("st/until").set(now()+5000);
+      if(st.ph==="q"&&al.length&&Object.keys(P()).every(id=>((P()[id].a||{})[st.r])!=null)&&st.until-now()>2000)gref.child("st/until").set(now()+2000);
       if(st.ph==="vote"&&al.length&&al.every(id=>((P()[id].v||{})[st.r])!=null)&&st.until-now()>3000)gref.child("st/until").set(now()+3000);}
   }else if(t)t.textContent="";},300);
 // ---------- LIVE ----------
@@ -453,10 +460,10 @@ function drawLive(){
     body=`${st.ej?`<h2>🚀 ${esc(pname(st.ej))} was ejected! 被淘汰！</h2><p class="muted">Role stays secret until the end. 身份最后揭晓。</p>`:`<h2>🤷 No one was ejected. 没有人被淘汰。</h2>`}
      ${Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([id,n])=>`<div class="who">🗳️ ${esc(pname(id))}: <b>${n}</b></div>`).join("")}${skip?`<div class="who">⏭️ Skip: <b>${skip}</b></div>`:""}`;
   }
-  const nextLbl={q:"Show answer ▶",result:"Start voting ▶",vote:"Count votes ▶",eject:"Next round ▶"}[st.ph];
+  const nextLbl={q:"Show answer ▶",result:voteDue(r)?"Start voting ▶":"Next question ▶",vote:"Count votes ▶",eject:"Next question ▶"}[st.ph];
   app.innerHTML=`${topBar()}
    <div class="grid"><div class="card">
-     <div class="bar"><span class="phase">Round ${r+1}/${G.cfg.rounds}</span><span class="pill">${PHL[st.ph]}</span><span class="sp"></span><span class="timer big2" id="tm"></span></div>
+     <div class="bar"><span class="phase">Round ${r+1}/${G.cfg.rounds}</span><span class="pill">${PHL[st.ph]}</span><span class="pill">🗳️ Vote after Q${nextVoteQ(r)}</span><span class="sp"></span><span class="timer big2" id="tm"></span></div>
      <div class="row" style="margin:10px 0"><span>Sabotage 破坏 <span class="meter">${[0,1,2].map(i=>`<i class="${i<(st.sab||0)?"on":""}"></i>`).join("")}</span></span>
       <span class="sp"></span><span class="muted">Imposters in game 卧底: ${G.cfg.nImp}</span></div>
      <div class="fade">${body}</div>

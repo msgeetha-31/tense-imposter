@@ -297,6 +297,9 @@ const myRole=()=>(G.roles||{})[uid];
 const isOut=id=>G.out&&G.out[id]!=null;
 const pname=id=>(G.players&&G.players[id]?G.players[id].name:"(left)");
 function curQ(){return QS[G.cfg.qs[G.st.r]];}
+function vE(){return G.cfg.vE||1;}
+function voteDue(r){return (r+1)%vE()===0||r+1>=G.cfg.rounds;}
+function nextVoteQ(r){return Math.min(G.cfg.rounds,Math.ceil((r+1)/vE())*vE());}
 
 function roleChip(){
   const r=myRole();if(!r)return `<span class="chip">⏳ Getting role…</span>`;
@@ -313,6 +316,7 @@ function header(){
   const st=G.st,n=G.cfg.rounds,sab=st.sab||0;
   return `<div class="top"><b>Round ${st.r+1}/${n}</b>
    <span class="pill">Sabotage 破坏 <span class="meter">${[0,1,2].map(i=>`<i class="${i<sab?"on":""}"></i>`).join("")}</span></span>
+   <span class="pill">🗳️ Vote after Q${nextVoteQ(st.r)}</span>
    <span class="sp"></span><span class="timer" id="tm"></span></div>
    <div class="row" style="margin-top:8px">${roleChip()}<span class="sp"></span><span class="muted">${esc(myName)}</span></div>
    ${isOut(uid)?`<div class="ghostbar">👻 You were ejected. Keep answering for practice, but you can't vote. 你已被淘汰，可以继续练习，但不能投票。</div>`:""}`;
@@ -349,7 +353,7 @@ function renderLobby(){
      <li>The game secretly picks some <b style="color:var(--imp)">imposters</b>. Everyone else is <b style="color:var(--crew)">crew</b>. 系统秘密选出卧底。</li>
      <li>Each round has a tense question. Crew get a <b>real hint</b>. Imposters get a <b>fake hint</b>. 队员拿真提示，卧底拿假提示。</li>
      <li>Discuss out loud, then choose your answer. 大声讨论，然后作答。</li>
-     <li>See who chose what, then <b>vote</b> out the person you think is the imposter. 看答案后投票。</li>
+     <li>See who chose what. Every 3 questions there is an emergency meeting: <b>vote</b> out the person you think is the imposter. 每3题投票一次。</li>
      <li>Crew win by ejecting all imposters. Imposters win if the class gets 3 sabotages or they survive to the end. 找出全部卧底队员就赢。</li>
     </ol>
     <p class="muted" style="margin-bottom:0">Keep your role secret! 不要让别人看到你的身份！</p></div>
@@ -406,8 +410,9 @@ function renderResult(){
    <div class="card fade"><b>🔍 Who chose what? 谁选了什么？</b><div class="zh">Look for clues: who pushed the wrong answer? 想想谁在误导大家？</div>
     ${by.map((ns,i)=>`<div class="who"><b>${L[i]}</b> ${esc(q[1][i])} ${i===q[2]?"✅":""}: <span class="names">${ns.length?ns.map(esc).join(", "):"-"}</span></div>`).join("")}
     ${none.length?`<div class="who"><b>?</b> No answer: <span class="names">${none.map(esc).join(", ")}</span></div>`:""}
-    <p class="muted" style="margin-bottom:0">Wait for the teacher to start voting… 等老师开始投票…</p></div>`;
+    <p class="muted" style="margin-bottom:0">${voteDue(r)?"🚨 Emergency meeting next: get ready to vote! 马上投票！":"➡️ Next question coming… 下一题马上开始…"}</p></div>`;
 }
+function marks(id){const r=G.st.r,a=(G.players[id]||{}).a||{};let out="";for(let k=Math.max(0,r-vE()+1);k<=r;k++){const v=a[k];out+=v==null?"⬜":(v===QS[G.cfg.qs[k]][2]?"✅":"❌");}return out;}
 function myVote(){const v=me().v;return v?v[G.st.r]:undefined;}
 function renderVote(){
   const alive=Object.keys(G.players||{}).filter(id=>!isOut(id)&&id!==uid);
@@ -415,7 +420,8 @@ function renderVote(){
   app.innerHTML=`<div class="card fade">${header()}</div>
    <div class="card fade center"><div class="emoji">🚨</div><h2>Emergency meeting! 紧急会议！</h2>
     <p>${ghost?"Ghosts can't vote. Watch and see who gets ejected. 你不能投票。":"Who is the imposter? Vote, or skip if you're not sure. 谁是卧底？投票，或不确定就跳过。"}</p>
-    ${ghost?"":`<div class="vlist" style="text-align:left">${alive.map(id=>`<button class="vbtn" data-v="${id}">🧑‍🚀 ${esc(pname(id))}</button>`).join("")}
+    <p class="muted" style="font-size:14px">✅❌ = each player's answers in the last ${Math.min(vE(),G.st.r+1)} question(s). 最近几题的对错。</p>
+    ${ghost?"":`<div class="vlist" style="text-align:left">${alive.map(id=>`<button class="vbtn" data-v="${id}">🧑‍🚀 ${esc(pname(id))} <span style="float:right">${marks(id)}</span></button>`).join("")}
       <button class="vbtn" data-v="skip">⏭️ Skip 跳过</button></div><div class="muted" id="vs" style="margin-top:10px"></div>`}
    </div>`;
   app.querySelectorAll(".vbtn").forEach(b=>b.onclick=()=>{snd("tap");const v=b.dataset.v;
@@ -467,7 +473,7 @@ function renderEnd(){
 }
 // timer
 setInterval(()=>{const t=$("#tm");if(!t||!G||!G.st)return;const st=G.st;
-  if((st.ph==="q"||st.ph==="vote")&&st.until){const s=Math.max(0,Math.ceil((st.until-now())/1000));t.textContent="⏱ "+s+"s";t.classList.toggle("low",s<=10);if(s<=5&&s>0&&t.dataset.l!=s){t.dataset.l=s;snd("tick");}}
+  if((st.ph==="q"||st.ph==="vote"||st.ph==="result")&&st.until){const s=Math.max(0,Math.ceil((st.until-now())/1000));t.textContent="⏱ "+s+"s";t.classList.toggle("low",s<=10);if(s<=5&&s>0&&t.dataset.l!=s){t.dataset.l=s;snd("tick");}}
   else t.textContent="";},250);
 // boot
 soundButton(false);
