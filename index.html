@@ -101,10 +101,53 @@ function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor
  (function f(t){x.clearRect(0,0,c.width,c.height);for(const s of st){s.y+=s.s*devicePixelRatio;if(s.y>c.height)s.y=0;const a=.4+.6*Math.abs(Math.sin(t/900+s.p));
   x.fillStyle=`rgba(220,230,255,${a})`;x.beginPath();x.arc(s.x,s.y,s.r*devicePixelRatio,0,7);x.fill();}requestAnimationFrame(f);})(0);})();
 // sound
-let AC=null;function snd(type){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime;
- const seq={tap:[[660,.06]],ok:[[523,.09],[784,.14]],bad:[[220,.18],[160,.22]],alarm:[[880,.12],[660,.12],[880,.12],[660,.16]],tick:[[1200,.03]],win:[[523,.1],[659,.1],[784,.1],[1047,.25]],eject:[[400,.12],[300,.12],[200,.3]]}[type]||[];
- let d=0;for(const [f,l] of seq){const o=AC.createOscillator(),g=AC.createGain();o.type=type==="alarm"?"square":"triangle";o.frequency.value=f;
-  g.gain.setValueAtTime(.0001,t+d);g.gain.exponentialRampToValueAtTime(.18,t+d+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d+l);o.connect(g).connect(AC.destination);o.start(t+d);o.stop(t+d+l+.02);d+=l;}}catch(e){}}
+let AC=null,MUTE=false;try{MUTE=localStorage.getItem("impMute")==="1";}catch(e){}
+function ac(){AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();return AC;}
+function tone(f,t,l,type,vol,dest,slide){const a=ac(),o=a.createOscillator(),g=a.createGain();o.type=type||"triangle";o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+l);
+ g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol||.18,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+l);o.connect(g).connect(dest||a.destination);o.start(t);o.stop(t+l+.03);}
+function noise(t,l,vol,hp){const a=ac(),b=a.createBuffer(1,Math.floor(a.sampleRate*l),a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+ const s=a.createBufferSource(),g=a.createGain(),f=a.createBiquadFilter();f.type="highpass";f.frequency.value=hp||800;s.buffer=b;g.gain.value=vol||.12;s.connect(f).connect(g).connect(a.destination);s.start(t);}
+function snd(type){if(MUTE)return;try{const a=ac(),t=a.currentTime;
+ const seq=(notes,type,vol,gap)=>{let d=0;for(const [f,l] of notes){tone(f,t+d,l,type,vol);d+=gap||l;}};
+ switch(type){
+  case "tap":tone(880,t,.06,"sine",.12);break;
+  case "ok":seq([[523,.09],[659,.09],[784,.18]],"triangle",.18);break;
+  case "bad":tone(220,t,.22,"sawtooth",.1,null,140);tone(165,t+.18,.3,"sawtooth",.1,null,110);break;
+  case "tick":tone(1400,t,.035,"square",.06);break;
+  case "join":tone(988,t,.12,"sine",.16);tone(1319,t+.09,.22,"sine",.14);break;
+  case "start":tone(180,t,1.1,"sawtooth",.08,null,900);noise(t,1.1,.06,1500);seq([[523,.12],[659,.12],[784,.12],[1047,.4]],"triangle",.16,.12);break;
+  case "alarm":for(let i=0;i<4;i++){tone(700,t+i*.36,.18,"square",.09,null,1000);tone(1000,t+i*.36+.18,.18,"square",.09,null,700);}break;
+  case "sab":tone(110,t,.6,"sawtooth",.14,null,55);noise(t,.5,.12,300);tone(90,t+.35,.6,"square",.08,null,45);break;
+  case "safe":seq([[659,.1],[784,.1],[988,.25]],"sine",.15);break;
+  case "eject":tone(900,t,1.2,"sine",.13,null,120);noise(t+.1,1,.08,2000);break;
+  case "role":tone(196,t,.5,"sine",.15);tone(247,t+.25,.5,"sine",.15);tone(294,t+.5,.9,"sine",.15);break;
+  case "imp":tone(147,t,.6,"sawtooth",.1);tone(139,t+.3,.6,"sawtooth",.1);tone(98,t+.6,1.2,"sawtooth",.12);break;
+  case "drum":for(let i=0;i<14;i++)noise(t+i*.07,.06,.05+i*.008,200);tone(110,t+1.05,.8,"sawtooth",.12);tone(165,t+1.05,.8,"triangle",.12);break;
+  case "win":seq([[523,.12],[659,.12],[784,.12],[1047,.12],[784,.12],[1047,.5]],"triangle",.18,.12);break;
+  case "lose":seq([[392,.25],[370,.25],[349,.25],[330,.6]],"triangle",.14,.25);break;
+ }}catch(e){}}
+// background music (space ambient). Calm or tense.
+const MUSIC={on:false,mode:"calm",timer:null,step:0,bus:null};
+function musicBus(){const a=ac();if(!MUSIC.bus){MUSIC.bus=a.createGain();MUSIC.bus.gain.value=.5;MUSIC.bus.connect(a.destination);}return MUSIC.bus;}
+function musicTick(){if(!MUSIC.on||MUTE)return;const a=ac(),t=a.currentTime,b=musicBus(),s=MUSIC.step++;
+ const tense=MUSIC.mode==="tense";
+ const chords=tense?[[110,131,165],[104,123,156],[110,131,165],[98,117,147]]:[[131,165,196],[110,131,165],[147,175,220],[123,147,185]];
+ const ch=chords[Math.floor(s/8)%4];
+ if(s%8===0)for(const f of ch)tone(f,t,tense?1.6:3.2,"sine",.035,b);
+ if(tense){if(s%2===0)tone(55,t,.18,"triangle",.07,b);if(s%4===2)noise(t,.05,.02,4000);}
+ const arp=[ch[0]*2,ch[1]*2,ch[2]*2,ch[1]*4];
+ if(!tense&&s%2===0)tone(arp[(s/2)%4],t,.5,"sine",.025,b);
+ if(tense)tone(arp[s%4],t,.12,"square",.012,b);}
+function musicStart(){if(MUSIC.timer)return;MUSIC.on=true;const run=()=>{musicTick();MUSIC.timer=setTimeout(run,MUSIC.mode==="tense"?190:380);};run();}
+function musicStop(){MUSIC.on=false;clearTimeout(MUSIC.timer);MUSIC.timer=null;}
+function musicMode(m){MUSIC.mode=m;}
+function soundButton(withMusic){const b=document.createElement("button");b.id="sndbtn";
+ b.style.cssText="position:fixed;right:14px;bottom:14px;z-index:30;width:52px;height:52px;border-radius:50%;border:1px solid #2a3672;background:#151e44;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4)";
+ const paint=()=>{b.textContent=MUTE?"🔇":(withMusic?"🎵":"🔊");b.title=MUTE?"Sound off":"Sound on";};paint();
+ b.onclick=()=>{MUTE=!MUTE;try{localStorage.setItem("impMute",MUTE?"1":"0");}catch(e){}if(MUTE)musicStop();else{snd("tap");if(withMusic)musicStart();}paint();};
+ document.body.appendChild(b);
+ if(withMusic){const kick=()=>{if(!MUTE)musicStart();removeEventListener("pointerdown",kick);};addEventListener("pointerdown",kick);}
+ else addEventListener("pointerdown",()=>{try{ac();}catch(e){}},{once:true});}
 function norm(g){if(g&&g.cfg&&g.cfg.qs&&!Array.isArray(g.cfg.qs)){const o=g.cfg.qs;g.cfg.qs=Object.keys(o).sort((a,b)=>a-b).map(k=>o[k]);}return g;}
 function played(g){const st=g.st||{};if(st.r==null)return 0;return st.r+(st.ph==="q"&&g.status==="live"?0:1);}
 
@@ -281,7 +324,9 @@ function render(){
   if(G.status==="lobby"){renderLobby();return;}
   if(G.status==="live"&&myRole()&&!roleSeen){roleSeen=true;showRoleCard();}
   if(key!==lastKey){lastKey=key;
-    if(st.ph!==lastPh){if(st.ph==="vote")snd("alarm");if(st.ph==="eject")snd("eject");if(G.status==="end")snd("win");lastPh=st.ph;}
+    if(st.ph!==lastPh||G.status==="end"&&lastPh!=="END"){
+      if(G.status==="end"){lastPh="END";}
+      else{if(st.ph==="vote")snd("alarm");if(st.ph==="eject"&&st.ej)snd("eject");if(st.ph==="q"&&lastPh)snd("tap");lastPh=st.ph;}}
     if(G.status==="end"){renderEnd();return;}
     if(st.ph==="q")renderQ();else if(st.ph==="result")renderResult();else if(st.ph==="vote")renderVote();else if(st.ph==="eject")renderEject();
     bindChip();
@@ -312,7 +357,7 @@ function renderLobby(){
   $("#lv").onclick=async()=>{try{await DB.ref("imp/"+code+"/players/"+uid).remove();}catch(e){}clearSess();startScreen();};
 }
 function showRoleCard(){
-  const r=myRole(),imp=r==="I";snd(imp?"bad":"ok");
+  const r=myRole(),imp=r==="I";snd("drum");setTimeout(()=>snd(imp?"imp":"role"),1100);
   const n=G.cfg.nImp||1;
   $("#ovl").innerHTML=`<div class="ov"><div class="card fade">
     <div class="muted">Your secret role 你的秘密身份</div>
@@ -322,7 +367,7 @@ function showRoleCard(){
          :`<p>You get <b>real hints</b>. Answer correctly and find the ${n>1?n+" imposters":"imposter"}! 你拿到真提示，答对题并找出卧底！</p>`}
     <p class="muted">There ${n>1?"are <b>"+n+"</b> imposters":"is <b>1</b> imposter"} on this ship. 本局有 ${n} 个卧底。</p>
     <button class="btn ${imp?"red":"teal"}" id="okr" style="width:100%">Hide my role 隐藏身份</button></div></div>`;
-  $("#okr").onclick=()=>{$("#ovl").innerHTML="";};
+  $("#okr").onclick=()=>{snd("tap");$("#ovl").innerHTML="";};
 }
 function hintBox(q){
   const imp=myRole()==="I"&&!isOut(uid);
@@ -348,7 +393,7 @@ function markSel(){const v=myAns();app.querySelectorAll(".opt").forEach(b=>b.cla
   const s=$("#st");if(s&&v!=null)s.innerHTML=`✅ Locked in: <b>${L[v]}</b>. You can still change it. 已选择，还可以改。`;}
 function renderResult(){
   const q=curQ(),r=G.st.r,v=myAns(),ok=v===q[2];
-  if(v!=null)snd(ok?"ok":"bad");
+  if(v!=null)snd(ok?"ok":"bad");setTimeout(()=>snd(G.st.hit?"sab":"safe"),700);
   const by=[[],[],[],[]],none=[];
   for(const [id,p] of Object.entries(G.players||{})){const a=p.a&&p.a[r];if(a==null)none.push(p.name);else by[a].push(p.name);}
   const hit=G.st.hit;
@@ -397,8 +442,10 @@ function tallyHTML(){
   if(!rows.length&&!skip)return `<p class="muted">No votes. 没有人投票。</p>`;
   return `<div style="text-align:left;max-width:360px;margin:0 auto">${rows.map(([id,n])=>`<div class="who">🗳️ ${esc(pname(id))}: <b>${n}</b></div>`).join("")}${skip?`<div class="who">⏭️ Skip: <b>${skip}</b></div>`:""}</div>`;
 }
+let endSnd="";
 function renderEnd(){
   const st=G.st,win=st.win,imp=myRole()==="I",iWon=(win==="imp")===imp,none=win!=="crew"&&win!=="imp";
+  const k=(st.reveal?"r":"e")+code;if(endSnd!==k){endSnd=k;if(st.reveal){snd("drum");if(!none)setTimeout(()=>snd(iWon?"win":"lose"),1100);}else snd(none?"safe":(win==="crew"?"win":"imp"));}
   const why={caught:"All the imposters were ejected! 所有卧底都被找出来了！",sab:"The imposters made 3 sabotages! 卧底完成了3次破坏！",
              outnum:"The imposters now equal the crew! 卧底人数追平队员！",survive:"The imposters survived until the last round! 卧底撑到了最后！",teacher:"The teacher ended the mission. 老师结束了任务。"}[st.why]||"";
   const answered=Object.values(me().a||{}).filter(v=>v!=null).length,correct=G.cfg.qs.reduce((n,qi,r)=>n+((me().a||{})[r]===QS[qi][2]?1:0),0);
@@ -423,6 +470,7 @@ setInterval(()=>{const t=$("#tm");if(!t||!G||!G.st)return;const st=G.st;
   if((st.ph==="q"||st.ph==="vote")&&st.until){const s=Math.max(0,Math.ceil((st.until-now())/1000));t.textContent="⏱ "+s+"s";t.classList.toggle("low",s<=10);if(s<=5&&s>0&&t.dataset.l!=s){t.dataset.l=s;snd("tick");}}
   else t.textContent="";},250);
 // boot
+soundButton(false);
 (async()=>{const s=loadSess();
   if(s&&s.code){try{uid=await freshAuth(false);const g=(await withAuth(()=>DB.ref("imp/"+s.code).get())).val();
     if(g&&g.players&&g.players[AUTH.currentUser.uid]&&g.status!=="end"){uid=AUTH.currentUser.uid;code=s.code;myName=s.name;roleSeen=g.status==="live";watch();return;}}catch(e){}}

@@ -74,8 +74,15 @@ tr.out td{opacity:.55}
 .howto summary{cursor:pointer;font-size:18px;font-weight:bold}
 .howto ol,.howto ul{margin:.3em 0 .6em;padding-left:1.3em}
 .big2{font-size:22px}
+.qrbox{background:#fff;padding:10px;border-radius:14px;display:inline-block;line-height:0}
+.qrbox img,.qrbox canvas{display:block}
+.qrsm{cursor:pointer;padding:5px;border-radius:8px}
+.joinrow{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+#qrov{position:fixed;inset:0;z-index:20;background:rgba(3,6,20,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;cursor:pointer;text-align:center}
 </style></head><body>
 <div class="wrap" id="app"><div class="card">Connecting…</div></div>
+<div id="qrov"><div class="qrbox" id="qrovbox"></div><div class="code" id="qrovcode"></div><div class="muted">Scan to join · 扫码加入 · Tap anywhere to close</div></div>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -101,10 +108,53 @@ function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor
  (function f(t){x.clearRect(0,0,c.width,c.height);for(const s of st){s.y+=s.s*devicePixelRatio;if(s.y>c.height)s.y=0;const a=.4+.6*Math.abs(Math.sin(t/900+s.p));
   x.fillStyle=`rgba(220,230,255,${a})`;x.beginPath();x.arc(s.x,s.y,s.r*devicePixelRatio,0,7);x.fill();}requestAnimationFrame(f);})(0);})();
 // sound
-let AC=null;function snd(type){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime;
- const seq={tap:[[660,.06]],ok:[[523,.09],[784,.14]],bad:[[220,.18],[160,.22]],alarm:[[880,.12],[660,.12],[880,.12],[660,.16]],tick:[[1200,.03]],win:[[523,.1],[659,.1],[784,.1],[1047,.25]],eject:[[400,.12],[300,.12],[200,.3]]}[type]||[];
- let d=0;for(const [f,l] of seq){const o=AC.createOscillator(),g=AC.createGain();o.type=type==="alarm"?"square":"triangle";o.frequency.value=f;
-  g.gain.setValueAtTime(.0001,t+d);g.gain.exponentialRampToValueAtTime(.18,t+d+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d+l);o.connect(g).connect(AC.destination);o.start(t+d);o.stop(t+d+l+.02);d+=l;}}catch(e){}}
+let AC=null,MUTE=false;try{MUTE=localStorage.getItem("impMute")==="1";}catch(e){}
+function ac(){AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();return AC;}
+function tone(f,t,l,type,vol,dest,slide){const a=ac(),o=a.createOscillator(),g=a.createGain();o.type=type||"triangle";o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+l);
+ g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol||.18,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+l);o.connect(g).connect(dest||a.destination);o.start(t);o.stop(t+l+.03);}
+function noise(t,l,vol,hp){const a=ac(),b=a.createBuffer(1,Math.floor(a.sampleRate*l),a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+ const s=a.createBufferSource(),g=a.createGain(),f=a.createBiquadFilter();f.type="highpass";f.frequency.value=hp||800;s.buffer=b;g.gain.value=vol||.12;s.connect(f).connect(g).connect(a.destination);s.start(t);}
+function snd(type){if(MUTE)return;try{const a=ac(),t=a.currentTime;
+ const seq=(notes,type,vol,gap)=>{let d=0;for(const [f,l] of notes){tone(f,t+d,l,type,vol);d+=gap||l;}};
+ switch(type){
+  case "tap":tone(880,t,.06,"sine",.12);break;
+  case "ok":seq([[523,.09],[659,.09],[784,.18]],"triangle",.18);break;
+  case "bad":tone(220,t,.22,"sawtooth",.1,null,140);tone(165,t+.18,.3,"sawtooth",.1,null,110);break;
+  case "tick":tone(1400,t,.035,"square",.06);break;
+  case "join":tone(988,t,.12,"sine",.16);tone(1319,t+.09,.22,"sine",.14);break;
+  case "start":tone(180,t,1.1,"sawtooth",.08,null,900);noise(t,1.1,.06,1500);seq([[523,.12],[659,.12],[784,.12],[1047,.4]],"triangle",.16,.12);break;
+  case "alarm":for(let i=0;i<4;i++){tone(700,t+i*.36,.18,"square",.09,null,1000);tone(1000,t+i*.36+.18,.18,"square",.09,null,700);}break;
+  case "sab":tone(110,t,.6,"sawtooth",.14,null,55);noise(t,.5,.12,300);tone(90,t+.35,.6,"square",.08,null,45);break;
+  case "safe":seq([[659,.1],[784,.1],[988,.25]],"sine",.15);break;
+  case "eject":tone(900,t,1.2,"sine",.13,null,120);noise(t+.1,1,.08,2000);break;
+  case "role":tone(196,t,.5,"sine",.15);tone(247,t+.25,.5,"sine",.15);tone(294,t+.5,.9,"sine",.15);break;
+  case "imp":tone(147,t,.6,"sawtooth",.1);tone(139,t+.3,.6,"sawtooth",.1);tone(98,t+.6,1.2,"sawtooth",.12);break;
+  case "drum":for(let i=0;i<14;i++)noise(t+i*.07,.06,.05+i*.008,200);tone(110,t+1.05,.8,"sawtooth",.12);tone(165,t+1.05,.8,"triangle",.12);break;
+  case "win":seq([[523,.12],[659,.12],[784,.12],[1047,.12],[784,.12],[1047,.5]],"triangle",.18,.12);break;
+  case "lose":seq([[392,.25],[370,.25],[349,.25],[330,.6]],"triangle",.14,.25);break;
+ }}catch(e){}}
+// background music (space ambient). Calm or tense.
+const MUSIC={on:false,mode:"calm",timer:null,step:0,bus:null};
+function musicBus(){const a=ac();if(!MUSIC.bus){MUSIC.bus=a.createGain();MUSIC.bus.gain.value=.5;MUSIC.bus.connect(a.destination);}return MUSIC.bus;}
+function musicTick(){if(!MUSIC.on||MUTE)return;const a=ac(),t=a.currentTime,b=musicBus(),s=MUSIC.step++;
+ const tense=MUSIC.mode==="tense";
+ const chords=tense?[[110,131,165],[104,123,156],[110,131,165],[98,117,147]]:[[131,165,196],[110,131,165],[147,175,220],[123,147,185]];
+ const ch=chords[Math.floor(s/8)%4];
+ if(s%8===0)for(const f of ch)tone(f,t,tense?1.6:3.2,"sine",.035,b);
+ if(tense){if(s%2===0)tone(55,t,.18,"triangle",.07,b);if(s%4===2)noise(t,.05,.02,4000);}
+ const arp=[ch[0]*2,ch[1]*2,ch[2]*2,ch[1]*4];
+ if(!tense&&s%2===0)tone(arp[(s/2)%4],t,.5,"sine",.025,b);
+ if(tense)tone(arp[s%4],t,.12,"square",.012,b);}
+function musicStart(){if(MUSIC.timer)return;MUSIC.on=true;const run=()=>{musicTick();MUSIC.timer=setTimeout(run,MUSIC.mode==="tense"?190:380);};run();}
+function musicStop(){MUSIC.on=false;clearTimeout(MUSIC.timer);MUSIC.timer=null;}
+function musicMode(m){MUSIC.mode=m;}
+function soundButton(withMusic){const b=document.createElement("button");b.id="sndbtn";
+ b.style.cssText="position:fixed;right:14px;bottom:14px;z-index:30;width:52px;height:52px;border-radius:50%;border:1px solid #2a3672;background:#151e44;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4)";
+ const paint=()=>{b.textContent=MUTE?"🔇":(withMusic?"🎵":"🔊");b.title=MUTE?"Sound off":"Sound on";};paint();
+ b.onclick=()=>{MUTE=!MUTE;try{localStorage.setItem("impMute",MUTE?"1":"0");}catch(e){}if(MUTE)musicStop();else{snd("tap");if(withMusic)musicStart();}paint();};
+ document.body.appendChild(b);
+ if(withMusic){const kick=()=>{if(!MUTE)musicStart();removeEventListener("pointerdown",kick);};addEventListener("pointerdown",kick);}
+ else addEventListener("pointerdown",()=>{try{ac();}catch(e){}},{once:true});}
 function norm(g){if(g&&g.cfg&&g.cfg.qs&&!Array.isArray(g.cfg.qs)){const o=g.cfg.qs;g.cfg.qs=Object.keys(o).sort((a,b)=>a-b).map(k=>o[k]);}return g;}
 function played(g){const st=g.st||{};if(st.r==null)return 0;return st.r+(st.ph==="q"&&g.status==="live"?0:1);}
 
@@ -211,7 +261,7 @@ const autoImp=n=>Math.max(1,Math.floor((n+4)/6));
 
 function howTo(open){return `<div class="card howto"><details${open?" open":""}><summary>📖 How to play 怎么玩</summary>
  <h3>Students 学生</h3><ol>
-  <li>Open <b>${GAME_URL}</b> on a phone, type your name and the 6-digit code. 用手机打开网址，输入名字和代码。</li>
+  <li>Scan the QR code on the teacher's screen (or open <b>${GAME_URL}</b> and type the 6-digit code), then type your name. 扫二维码或打开网址输入代码，再输入名字。</li>
   <li>The game secretly picks the <b class="rI">imposters</b>. Everyone else is <b class="rC">crew</b>. Hold the role button to check your role. 按住按钮查看身份。</li>
   <li>Each round: read the tense question. Crew get a <b>real hint</b>; imposters get a <b>fake hint</b>. Discuss out loud and choose an answer. 讨论后作答。</li>
   <li>After the answer is shown, everyone can see who chose what. Then <b>vote</b> to eject the person you think is the imposter, or skip. 看答案，然后投票。</li>
@@ -223,7 +273,8 @@ function howTo(open){return `<div class="card howto"><details${open?" open":""}>
   <li>Roles stay hidden on this screen, so it is safe to project. Use <b>Hold to peek</b> only on your own screen. 屏幕不显示身份，可以投影。</li>
   <li>The discussion and voting timers run by themselves. Press <b>Next ▶</b> to move on after the answer and eject screens, or to skip a timer. 按 Next 进入下一步。</li>
   <li>At the end, press <b>Reveal roles</b> to show the imposters to everyone, then download the CSV. 最后揭晓身份并下载成绩。</li>
-  <li>Keep this page open during the game: it runs the timers. 游戏期间请保持本页面开启。</li></ul>
+  <li>Keep this page open during the game: it runs the timers. 游戏期间请保持本页面开启。</li>
+  <li>Sound and space music play from this screen; use the 🎵 button (bottom right) to mute. Students' phones play short sound effects only. 右下角按钮可静音。</li></ul>
 </details></div>`;}
 
 function home(msg){
@@ -245,10 +296,16 @@ async function newGame(){
   }catch(e){home("Error: "+(e.message||e));}
 }
 function stopWatch(){if(gref){gref.off();gref=null;}G=null;}
-function open(c){stopWatch();code=c;try{localStorage.setItem(LS,c);}catch(e){}
+function open(c){stopWatch();code=c;prevN=-1;prevKey="";try{localStorage.setItem(LS,c);}catch(e){}
   gref=DB.ref("imp/"+c);gref.on("value",s=>{G=norm(s.val());
     if(!G||G.owner!==uid){try{localStorage.removeItem(LS);}catch(e){}home(G?"That game belongs to another teacher.":"Game not found.");return;}
-    autoRoles();draw();},e=>home("Error: "+e.message));}
+    autoRoles();sounds();draw();},e=>home("Error: "+e.message));}
+let prevN=-1,prevKey="";
+function sounds(){const n=Object.keys(G.players||{}).length;if(G.status==="lobby"){if(prevN>=0&&n>prevN)snd("join");}prevN=n;
+  const st=G.st||{},k=G.status+"|"+st.r+"|"+st.ph+"|"+st.reveal;if(k===prevKey)return;const first=!prevKey;prevKey=k;
+  musicMode(G.status==="live"&&(st.ph==="vote"||st.ph==="eject")?"tense":"calm");if(first)return;
+  if(G.status==="live"){if(st.ph==="q")snd(st.r===0?"start":"tap");else if(st.ph==="result")snd(st.hit?"sab":"safe");else if(st.ph==="vote")snd("alarm");else if(st.ph==="eject")snd(st.ej?"eject":"bad");}
+  else if(G.status==="end"){if(st.reveal)snd("drum");else snd(st.win==="crew"?"win":st.win==="imp"?"imp":"safe");}}
 function autoRoles(){ // late joiners become crew
   if(G.status!=="live")return;const up={};
   for(const id of Object.keys(G.players||{}))if(!(G.roles||{})[id])up[id]="C";
@@ -263,16 +320,21 @@ function curQ(){return QS[G.cfg.qs[G.st.r]];}
 function correctCount(id){const a=(P()[id]||{}).a||{};return (G.cfg?G.cfg.qs:[]).reduce((n,qi,r)=>n+(a[r]===QS[qi][2]?1:0),0);}
 function answeredCount(id){return Object.values((P()[id]||{}).a||{}).filter(v=>v!=null).length;}
 
+const joinURL=()=>"https://"+GAME_URL+"/?code="+code;
+function makeQR(el,size){if(!el)return;el.innerHTML="";if(!window.QRCode){el.innerHTML='<span style="color:#000;line-height:1.3;font-size:14px">'+esc(joinURL())+'</span>';return;}
+  new QRCode(el,{text:joinURL(),width:size,height:size,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});}
+function bigQR(){const o=$("#qrov");const s=Math.min(innerWidth,innerHeight)-170;makeQR($("#qrovbox"),Math.max(220,Math.min(520,s)));$("#qrovcode").textContent=code;o.style.display="flex";o.onclick=()=>{o.style.display="none";};}
 function topBar(){
   const st=G.status;
   return `<div class="card bar"><div><b>🚀 Tense Imposter</b> <span class="pill">${st==="lobby"?"Lobby 等待中":st==="live"?"Live 进行中":"Ended 已结束"}</span><br>
     <span class="muted">Students go to <b style="color:var(--ink)">${GAME_URL}</b> and enter</span></div>
-   <div class="code">${code}</div><span class="sp"></span>
+   <div class="code">${code}</div>${st!=="end"?`<div class="qrbox qrsm" id="qrsm" title="Show QR code"></div>`:""}<span class="sp"></span>
    ${st==="live"?`<button class="btn ghost" id="peek">👁 Hold to peek roles</button>`:""}
    ${st!=="end"?`<button class="btn ghost" id="endg">${armEnd?"Click again to end":"End game"}</button>`:""}
    <button class="btn ghost" id="newg">New game</button></div>`;
 }
 function bindTop(){
+  const qs=$("#qrsm");if(qs){makeQR(qs,64);qs.onclick=bigQR;}
   const pk=$("#peek");if(pk){const on=e=>{e.preventDefault();peek=true;drawPlayers();},off=()=>{if(peek){peek=false;drawPlayers();}};
     pk.addEventListener("pointerdown",on);pk.addEventListener("pointerleave",off);}
   const eg=$("#endg");if(eg)eg.onclick=()=>{if(!armEnd){armEnd=true;draw();setTimeout(()=>{armEnd=false;if(G)draw();},4000);return;}armEnd=false;
@@ -288,7 +350,11 @@ function drawLobby(){
   const ids=Object.keys(P()),n=ids.length,nImp=cfgDraft.nImp==null?autoImp(n):Math.min(cfgDraft.nImp,Math.max(1,n-2)||1);
   const qn=cfgDraft.set==="ALL"?30:10;
   app.innerHTML=`${topBar()}
-   <div class="grid"><div class="card"><h2>Crew on board 已登船: ${n}</h2>
+   <div class="grid"><div class="card">
+     <div class="joinrow"><div class="qrbox" id="qrbig"></div><div><h2 style="margin-top:0">Scan to join 扫码加入</h2>
+      <div class="muted">or go to <b style="color:var(--ink)">${GAME_URL}</b><br>and enter code 输入代码</div><div class="code">${code}</div>
+      <button class="btn ghost" id="qrfull" style="margin-top:8px">⛶ Full-screen QR 全屏</button></div></div>
+     <h2>Crew on board 已登船: ${n}</h2>
      <div class="chips">${ids.map(id=>`<span>${esc(pname(id))} <button class="x" data-k="${id}" title="Remove">×</button></span>`).join("")||`<span class="muted">Waiting for students… 等待学生加入…</span>`}</div></div>
     <div class="card"><h2>Mission settings 设置</h2><div class="set">
       <div><label>Questions 题目</label><select id="set">${Object.entries(SECT).map(([k,v])=>`<option value="${k}" ${k===cfgDraft.set?"selected":""}>${v}</option>`).join("")}</select></div>
@@ -300,7 +366,7 @@ function drawLobby(){
      <p class="muted">Auto: about 1 imposter for every 6 students. 自动：约每6人1个卧底。</p>
      <button class="btn teal big2" id="start" ${n<3?"disabled":""} style="width:100%">🚀 Launch mission 开始 (${n<3?"need at least 3 students":nImp+" imposter"+(nImp>1?"s":"")})</button></div></div>
    ${howTo(false)}`;
-  bindTop();
+  bindTop();makeQR($("#qrbig"),200);$("#qrfull").onclick=bigQR;
   app.querySelectorAll(".x").forEach(b=>b.onclick=()=>gref.child("players/"+b.dataset.k).remove());
   $("#set").onchange=e=>{cfgDraft.set=e.target.value;draw();};
   $("#dT").onchange=e=>{cfgDraft.dT=+e.target.value;};
@@ -358,7 +424,7 @@ async function endGame(win,why){
 }
 setInterval(()=>{if(!G||G.status!=="live")return;const st=G.st;
   const t=$("#tm");
-  if((st.ph==="q"||st.ph==="vote")&&st.until){const s=Math.max(0,Math.ceil((st.until-now())/1000));if(t){t.textContent="⏱ "+s+"s";t.classList.toggle("low",s<=10);}
+  if((st.ph==="q"||st.ph==="vote")&&st.until){const s=Math.max(0,Math.ceil((st.until-now())/1000));if(t){t.textContent="⏱ "+s+"s";t.classList.toggle("low",s<=10);if(s<=5&&s>0&&t.dataset.l!=s){t.dataset.l=s;snd("tick");}}
     if(now()>=st.until)advance();
     // everyone done early?
     else{const al=alive();
@@ -436,6 +502,7 @@ function csv(){
 }
 ["pointerup","pointercancel","blur"].forEach(v=>addEventListener(v,()=>{if(peek){peek=false;drawPlayers();}}));
 // ---------- BOOT ----------
+soundButton(true);
 (async()=>{try{uid=await freshAuth(false);}catch(e){home("Could not connect: "+e.message);return;}
   let c=null;try{c=localStorage.getItem(LS);}catch(e){}
   if(c)open(c);else home();})();
